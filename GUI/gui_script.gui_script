@@ -1,0 +1,32 @@
+local MSG_DISTANCE = hash("msg_distance")
+local MSG_COIN_COLLECT = hash("msg_coin_collect")
+local MSG_DEBUG_TEXT = hash("msg_debug")
+
+local global = require("global")
+
+
+function init(self)
+	-- score
+	global.score = 0
+
+	-- store nodes
+	self.node_score = gui.get_node(hash("score"))
+	self.node_debug = gui.get_node(hash("debug_text"))
+end
+
+function on_message(self, message_id, message, sender)
+
+	if (message_id==MSG_DISTANCE) then
+		global.score = global.score + message.dist_diff
+		gui.set_text(self.node_score, string.format("%0.f", global.score))
+	elseif (message_id==MSG_COIN_COLLECT) then
+		global.score = global.score + message.value
+		gui.set_text(self.node_score, string.format("%0.f", global.score))
+		gui.set_scale(self.node_score, vmath.vector3(1.2,1.2,0))
+		gui.animate(self.node_score, "scale", vmath.vector3(0.8,0.8,0), go.EASING_LINEAR, 0.3, 0, nil, gui.PLAYBACK_ONCE_FORWARD)
+	elseif (message_id==MSG_DEBUG_TEXT) then
+		gui.set_text(self.node_debug,message.text)
+	end
+end
+
+

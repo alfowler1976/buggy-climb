@@ -1,0 +1,127 @@
+local MSG_DISTANCE = hash("msg_distance")
+local MSG_RESET = hash("msg_reset")
+local MSG_DELETE_FROM_LIST = hash("entity")
+
+-- store common hashes
+local OFFSET = hash("offset")
+
+local terrain = require("terrain")
+local global = require("global")
+
+-- cache functions
+
+function init(self)
+
+	msg.post(".", "acquire_input_focus")
+
+	-- set up terrain
+	terrain.init(b2d.get_body("#collisionobject"),2000)
+	terrain.coin_factory = msg.url("#factory_coin")
+	terrain.spawn_props = {spawner_url = msg.url(".")}
+	
+	-- create buggy
+	self.buggy_ids = collectionfactory.create("/buggy#collectionfactory", go.get_position("/buggy"))
+
+	-- get body id
+	self.buggy_body_id = self.buggy_ids[hash("/body")]
+
+	-- gui
+	self.gui_url = msg.url("/gui#gui")
+	
+	-- store road mesh
+	self.road_mesh = msg.url("/road#mesh")
+	self.road_mesh_vertices = go.get(self.road_mesh, "vertices")
+
+	-- background stuff
+	self.background_offset = vmath.vector4(0,0,0,0)
+	self.background_model_url = msg.url("background#model")
+	self.background_id = hash("/background")
+
+	-- camera
+	self.camera_id = hash("/camera")
+
+	-- self 
+	self.distance = 0
+	
+	-- Generate initial terrain
+	terrain.generate_chain_chunk( -terrain.chunk_width,false)
+	terrain.generate_chain_chunk( 0,false)
+	terrain.generate_chain_chunk(terrain.chunk_width,true)
+end
+
+function update(self, dt)
+
+	local buggy_pos = go.get_position(self.buggy_body_id) 
+
+	if (buggy_pos.x>self.distance) then
+		msg.post(self.gui_url, MSG_DISTANCE, {dist_diff = buggy_pos.x-self.distance})
+		self.distance = buggy_pos.x
+	end
+	-- check if chunks need updating
+	terrain.update_chunks(buggy_pos)
+
+end
+
+function late_update(self, dt)
+
+	-- get buggy pos
+	local buggy_pos = go.get_position(self.buggy_body_id) 
+
+	-- calc left of screen
+	local start_x = buggy_pos.x - 480
+	
+	-- set camera to buggy
+	go.set_position(buggy_pos,self.camera_id)
+
+	-- move background
+	go.set_position(buggy_pos, self.background_id)
+
+	-- calc offset
+	self.background_offset.x = start_x/1.5/1600
+
+	-- update offset
+	go.set(self.background_model_url,OFFSET,self.background_offset)
+
+	-- generate terrain
+	terrain.generate_terrain(start_x, self.road_mesh_vertices)	
+end
+
+function final(self)
+	-- tidy up terrain
+	terrain.final()
+end
+
+
+function on_message(self, message_id, message, sender)
+
+	if (message_id==MSG_RESET) then
+
+		-- tidy up
+		terrain.final(true)
+
+		-- reset score
+		global.score = 0
+		self.distance = 0
+	
+		-- regenerate new chunks
+		terrain.generate_chain_chunk( -terrain.chunk_width,false)
+		terrain.generate_chain_chunk( 0,false)
+		terrain.generate_chain_chunk(terrain.chunk_width,true)
+
+		-- need to delete controller first as this removes joints and custom shapes
+		go.delete(self.buggy_ids[hash("/controller")])
+		go.delete(self.buggy_ids[hash("/body")])
+		go.delete(self.buggy_ids[hash("/wheel_back")])
+		go.delete(self.buggy_ids[hash("/wheel_front")])
+	
+		-- create aa new buggy
+		self.buggy_ids = collectionfactory.create("/buggy#collectionfactory", go.get_position("/buggy"))
+
+		-- get body id
+		self.buggy_body_id = self.buggy_ids[hash("/body")]
+	end
+
+	if (message_id == MSG_DELETE_FROM_LIST) then
+		terrain.entity_list[message.id] = nil
+	end
+end

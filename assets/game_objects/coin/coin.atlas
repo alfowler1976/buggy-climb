@@ -1,0 +1,24 @@
+animations {
+  id: "coin"
+  images {
+    image: "/assets/images/star coin rotate 1.png"
+  }
+  images {
+    image: "/assets/images/star coin rotate 2.png"
+  }
+  images {
+    image: "/assets/images/star coin rotate 3.png"
+  }
+  images {
+    image: "/assets/images/star coin rotate 4.png"
+  }
+  images {
+    image: "/assets/images/star coin rotate 5.png"
+  }
+  images {
+    image: "/assets/images/star coin rotate 6.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+  fps: 15
+}
+extrude_borders: 2

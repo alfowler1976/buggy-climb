@@ -1,0 +1,196 @@
+local ACCEL = hash("key_x")
+local BRAKE = hash("key_z")
+local MSG_RESET = hash("msg_reset")
+local MSG_DEBUG_TEXT = hash("msg_debug")
+local ESC_RESET = hash("key_esc")
+
+local global = require("global")
+
+function init(self)
+
+	msg.post(".", "acquire_input_focus")
+
+	self.in_air = false
+	self.air_torque_strength = -500
+	
+	self.wheel_front_url = msg.url("wheel_front#wheel")
+	self.wheel_back_url = msg.url("wheel_back#wheel")
+	
+	-- get collision objects
+	self.buggy_body = b2d.get_body("body#collisionobject")
+	local wheel_back_body = b2d.get_body("wheel_back#collisionobject")
+	local wheel_front_body = b2d.get_body("wheel_front#collisionobject")
+
+	-- get shape list
+	local shapes = b2d.body.get_shapes(self.buggy_body)
+
+	-- get filter data (for collisions) from original shape
+	local data = b2d.shape.get_filter_data(shapes[1].shape_id)
+	
+	-- get shape
+	local shape = b2d.shape.get_shape(shapes[1].shape_id)
+	
+	--  info for base of car
+	shape.type = b2d.shape.SHAPE_TYPE_POLYGON
+	shape.restitution = 0.5
+	shape.density = 2.0
+	shape.friction = 0.1
+	shape.vertices = {
+		vmath.vector3(114,-42,0),
+		vmath.vector3(121,-10,0),
+		vmath.vector3(41,12,0),
+		vmath.vector3(-76,23,0),
+		vmath.vector3(-107,13,0),
+		vmath.vector3(-76,23,0),
+		vmath.vector3(-120,-10,0),
+		vmath.vector3(-110,-35,0),
+		vmath.vector3(-40,-50,0)
+	}
+	
+	-- create new shape
+	b2d.body.create_shape(self.buggy_body, shape)
+
+	-- replace info for top half
+	shape.type = b2d.shape.SHAPE_TYPE_POLYGON
+	shape.restitution = 0.5
+	shape.density = 2.0
+	shape.friction = 0.1
+	shape.vertices = {
+		vmath.vector3(41,12,0),
+		vmath.vector3(20,42,0),
+		vmath.vector3(-44,48,0),
+		vmath.vector3(-76,23,0)	
+	}
+
+	-- create new shape
+	b2d.body.create_shape(self.buggy_body, shape)
+
+	-- get updated shapes
+	shapes = b2d.body.get_shapes(self.buggy_body)
+
+	-- update filter with original data for collisions 	
+	-- defold appears to add the shapes to the top of the list. so shape[3] is the orginal shape
+	-- dont try to delete the original shape created by game-object it crashes the engine
+	b2d.shape.set_filter_data(shapes[1].shape_id,data)
+	b2d.shape.set_filter_data(shapes[2].shape_id,data)
+
+	b2d.body.enable_hit_events(self.buggy_body,true)
+	b2d.body.enable_contact_events(self.buggy_body,true)
+	
+	-- enables trigger events. these need to be done on a shape by shape basis
+	b2d.shape.enable_sensor_events(self.buggy_body,1,true)
+	b2d.shape.enable_sensor_events(self.buggy_body,2,true)
+	
+	-- create wheel joint for back wheel
+	self.wheel_joint_back = b2d.joint.create_wheel(self.buggy_body, wheel_back_body, {
+		local_anchor_a = vmath.vector3(-80, -48, 0),
+		local_anchor_b = vmath.vector3(0, 0, 0),
+		local_axis_a = vmath.vector3(0, 1, 0),
+		enable_spring = true,
+		hertz = 10.0,          
+		damping_ratio = 0.7,  
+		enable_motor = false  
+	})
+
+	-- create wheel joint for front wheel
+	self.wheel_joint_front = b2d.joint.create_wheel(self.buggy_body, wheel_front_body, {
+		local_anchor_a = vmath.vector3(76, -45, 0),
+		local_anchor_b = vmath.vector3(0, 0, 0),
+		local_axis_a = vmath.vector3(0, 1, 0),
+		enable_spring = true,
+		hertz = 10.0,          
+		damping_ratio = 0.7,  
+		enable_motor = false  
+	})
+
+
+	self.playing_smoke = false
+	self.accelerating = false
+end
+
+function final(self)
+	-- delete joints
+	b2d.joint.destroy(self.wheel_joint_front)
+	b2d.joint.destroy(self.wheel_joint_back)
+	
+	-- delete shapes
+	b2d.body.destroy_shape(self.buggy_body, 1)
+	b2d.body.destroy_shape(self.buggy_body, 2)
+end
+
+local function exhaust_smoke(self, id, emitter, state)
+	
+	if (state==particlefx.EMITTER_STATE_POSTSPAWN) then
+		self.playing_smoke = false
+	end
+
+end
+
+function update(self, dt)
+
+	-- determine in air status
+	if (global.front_wheel_ground==false and global.back_wheel_ground==false) then
+		self.in_air = true
+	else
+		self.in_air = false
+	end
+
+	-- reset variables
+	global.front_wheel_ground = false
+	global.back_wheel_ground =false
+end
+
+function on_input(self, action_id, action)
+	
+	if action_id == ACCEL then
+		if action.pressed then
+			-- blast exhaust smoke
+			if (self.accelerating==false and self.playing_smoke==false) then
+				self.playing_smoke = true
+				particlefx.play("body#smoke", exhaust_smoke)
+			end
+			
+			self.accelerating = true
+			if (self.in_air==true) then
+				b2d.body.apply_torque(self.buggy_body, self.air_torque_strength)
+			else
+				-- Engage the motor
+				b2d.joint.wake_bodies(self.wheel_joint_back)
+				b2d.joint.enable_motor(self.wheel_joint_back, true)
+				b2d.joint.set_max_motor_torque(self.wheel_joint_back, 1000)
+				b2d.joint.set_motor_speed(self.wheel_joint_back, -math.pi * 20) 
+			end
+		elseif action.released then
+			-- engine braking
+			self.accelerating = false
+			b2d.joint.enable_motor(self.wheel_joint_back, true)
+			b2d.joint.set_max_motor_torque(self.wheel_joint_back, 300) 
+			b2d.joint.set_motor_speed(self.wheel_joint_back, 0)
+		end
+	end
+
+	if action_id == BRAKE then
+		self.accelerating = false
+		if action.pressed then
+			if (self.in_air==true) then
+				b2d.body.apply_torque(self.buggy_body, -self.air_torque_strength)
+			else
+				-- engage the motor
+				b2d.joint.wake_bodies(self.wheel_joint_back)
+				b2d.joint.set_max_motor_torque(self.wheel_joint_back, 1000)
+				b2d.joint.enable_motor(self.wheel_joint_back, true)
+				b2d.joint.set_motor_speed(self.wheel_joint_back, math.pi * 20) 
+			end
+		elseif action.released then
+			-- engine braking
+			b2d.joint.enable_motor(self.wheel_joint_back, true)
+			b2d.joint.set_max_motor_torque(self.wheel_joint_back, 300) 
+			b2d.joint.set_motor_speed(self.wheel_joint_back, 0)
+		end
+	end
+
+	if (action_id == ESC_RESET and action.released) then
+		msg.post("/ground#terrain_script", MSG_RESET,nil)
+	end
+end
+

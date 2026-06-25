@@ -1,0 +1,23 @@
+local MSG_CONTACT = hash("contact_point_response")
+local GROUND_COL = hash("ground")
+
+local global = require("global")
+
+go.property("front", true)
+
+function late_update(self, dt)
+	-- reset at the end of the cycl
+	self.grounded = false
+end
+
+function on_message(self, message_id, message, sender)
+	-- store grounded value
+	if (message_id==MSG_CONTACT ) then--and message.other_group == GROUND_COL) then
+		-- set wheel contact
+		if (self.front==true) then
+			global.front_wheel_ground = true
+		else
+			global.back_wheel_ground = true
+		end
+	end
+end

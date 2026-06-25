@@ -1,0 +1,83 @@
+script: "/GUI/gui_script.gui_script"
+fonts {
+  name: "gui_font"
+  font: "/GUI/gui_font.font"
+}
+nodes {
+  position {
+    x: 175.59999
+    y: 23.0
+  }
+  scale {
+    x: 0.8
+    y: 0.8
+  }
+  size {
+    x: 200.0
+    y: 50.0
+  }
+  type: TYPE_TEXT
+  text: "Score"
+  font: "gui_font"
+  id: "score"
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_BOTTOM
+  pivot: PIVOT_SW
+  inherit_alpha: true
+  material: "font"
+}
+nodes {
+  position {
+    x: 15.0
+    y: 623.0
+  }
+  scale {
+    x: 0.5
+    y: 0.5
+  }
+  size {
+    x: 1400.0
+    y: 200.0
+  }
+  type: TYPE_TEXT
+  text: "z  - brake - rotate CCW\n"
+  "x -  accel - rotate CW\n"
+  "Esc - reset"
+  font: "gui_font"
+  id: "debug_text"
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_TOP
+  pivot: PIVOT_NW
+  line_break: true
+  inherit_alpha: true
+  material: "font"
+}
+nodes {
+  position {
+    x: 30.0
+    y: 23.0
+  }
+  scale {
+    x: 0.8
+    y: 0.8
+  }
+  size {
+    x: 200.0
+    y: 50.0
+  }
+  type: TYPE_TEXT
+  text: "Score:"
+  font: "gui_font"
+  id: "score_label"
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_BOTTOM
+  pivot: PIVOT_SW
+  inherit_alpha: true
+  material: "font"
+}
+material: "/builtins/materials/gui.material"
+adjust_reference: ADJUST_REFERENCE_PARENT
+materials {
+  name: "font"
+  material: "/builtins/fonts/font.material"
+}

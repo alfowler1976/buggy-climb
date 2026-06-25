@@ -1,0 +1,7 @@
+images {
+  image: "/assets/images/wheel.png"
+}
+images {
+  image: "/assets/images/body.png"
+}
+extrude_borders: 2

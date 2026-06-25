@@ -1,0 +1,10 @@
+font: "/builtins/fonts/vera_mo_bd.ttf"
+material: "/builtins/fonts/font.material"
+size: 45
+outline_alpha: 1.0
+outline_width: 2.0
+shadow_alpha: 0.39
+shadow_blur: 4
+shadow_x: 8.0
+shadow_y: -8.0
+characters: " !\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
