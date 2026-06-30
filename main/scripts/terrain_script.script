@@ -75,10 +75,11 @@ function late_update(self, dt)
 
 	-- move background
 	go.set_position(buggy_pos, self.background_id)
-
+	
 	-- calc offset
 	self.background_offset.x = start_x/1.5/1600
 
+	
 	-- update offset
 	go.set(self.background_model_url,OFFSET,self.background_offset)
 

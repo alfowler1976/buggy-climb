@@ -1,5 +1,6 @@
 local ACCEL = hash("key_x")
 local BRAKE = hash("key_z")
+local JOINT_BREAK = hash("key_c")
 local MSG_RESET = hash("msg_reset")
 local MSG_DEBUG_TEXT = hash("msg_debug")
 local ESC_RESET = hash("key_esc")
@@ -15,6 +16,8 @@ function init(self)
 	
 	self.wheel_front_url = msg.url("wheel_front#wheel")
 	self.wheel_back_url = msg.url("wheel_back#wheel")
+
+	self.wheels_off = false
 	
 	-- get collision objects
 	self.buggy_body = b2d.get_body("body#collisionobject")
@@ -109,9 +112,15 @@ function init(self)
 end
 
 function final(self)
+	
 	-- delete joints
-	b2d.joint.destroy(self.wheel_joint_front)
-	b2d.joint.destroy(self.wheel_joint_back)
+	if self.wheel_joint_front then
+		b2d.joint.destroy(self.wheel_joint_front)
+	end
+
+	if self.wheel_joint_back then
+		b2d.joint.destroy(self.wheel_joint_back)
+	end
 	
 	-- delete shapes
 	b2d.body.destroy_shape(self.buggy_body, 1)
@@ -141,6 +150,15 @@ function update(self, dt)
 end
 
 function on_input(self, action_id, action)
+
+
+	if (action_id == ESC_RESET and action.released) then
+		msg.post("/ground#terrain_script", MSG_RESET,nil)
+	end
+	
+	if self.wheels_off==true then
+		return
+	end
 	
 	if action_id == ACCEL then
 		if action.pressed then
@@ -189,8 +207,23 @@ function on_input(self, action_id, action)
 		end
 	end
 
-	if (action_id == ESC_RESET and action.released) then
-		msg.post("/ground#terrain_script", MSG_RESET,nil)
+
+
+	if (action_id == JOINT_BREAK and self.wheels_off==false) then
+
+		self.wheels_off=true
+		
+		-- delete joints
+		if self.wheel_joint_front then
+			b2d.joint.destroy(self.wheel_joint_front)
+			self.wheel_joint_front = nil
+		end
+
+		if self.wheel_joint_back then
+			b2d.joint.destroy(self.wheel_joint_back)
+			self.wheel_joint_back = nil
+		end
 	end
+	
 end
 

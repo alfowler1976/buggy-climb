@@ -37,11 +37,12 @@ nodes {
   }
   size {
     x: 1400.0
-    y: 200.0
+    y: 220.0
   }
   type: TYPE_TEXT
   text: "z  - brake - rotate CCW\n"
   "x -  accel - rotate CW\n"
+  "c - for laughs - best used at speed!\n"
   "Esc - reset"
   font: "gui_font"
   id: "debug_text"

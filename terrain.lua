@@ -70,6 +70,7 @@ function M.init(ground_col_body,chunk_width)
 
 end
 
+
 local function get_hill_height(x)
 	-- calculate how far along the difficulty curve the car is (0.0 to 1.0)
 	local progress = (x - FLAT_ZONE) / (MAX_ROCKY_X - FLAT_ZONE)
@@ -77,15 +78,9 @@ local function get_hill_height(x)
 	-- clamp the intensity 
 	local intensity = math_max(0, math_min(1.0, progress))
 
-	-- calculate the wave patterns
-	local rolling_hills = math_sin(x * 0.002) * 450
-	local medium_hills  = math_sin(x * 0.003) * 50
-	local rocky_bumps   = math_sin(x * 0.01) * 40 
+	local noise_value = simplex.noise2(x*0.0006, 0) * 600 * math.min(1.0 + x/100000,2)
 
-	-- apply the intensity multiplier to the waves
-	local y = 0 + (rolling_hills + medium_hills + rocky_bumps) * intensity 
-
-	return y
+	return noise_value * intensity
 end
 
 function M.final(delete_entites)
@@ -141,9 +136,9 @@ function M.generate_chain_chunk(start_x, forward)
 	})
 
 	-- need to set to allow events to come through defold message system
-	for i=1,#segs,1 do
-		b2d.shape.set_filter_data(segs[1].shape_id,M.filter_data)
-	end
+	-- turns out you need to set filter data to the first segment
+	b2d.shape.set_filter_data(segs[1].shape_id,M.filter_data)
+
 
 	-- store data
 	table.insert(M.active_chunks, {
@@ -157,21 +152,14 @@ function M.generate_chain_chunk(start_x, forward)
 	-- if odd chunk and generating forward spawn some coins...
 	if (chunk%2)==1 and forward==true then
 		
-		local point = M.point_pool[10]
-		local id = factory.create(M.coin_factory, vmath.vector3(point.x,point.y+50,0.4),nil,M.spawn_props)
-		M.entity_list[id] = true
-		
-		point = M.point_pool[12]
-		id =factory.create(M.coin_factory, vmath.vector3(point.x,point.y+50,0.4),nil,M.spawn_props)
-		M.entity_list[id] = true
-		
-		point = M.point_pool[14]
-		id =factory.create(M.coin_factory, vmath.vector3(point.x,point.y+50,0.4),nil,M.spawn_props)
-		M.entity_list[id] = true
-		
-		point = M.point_pool[16]
-		id =factory.create(M.coin_factory, vmath.vector3(point.x,point.y+50,0.4),nil,M.spawn_props)
-		M.entity_list[id] = true
+		local coin_indices = {10, 12, 14, 16}
+		-- generate coins for indices
+		for _, index in ipairs(coin_indices) do
+			local point = M.point_pool[index]
+			local spawn_pos = vmath.vector3(point.x, point.y + 50, 0.4)
+			local id = factory.create(M.coin_factory, spawn_pos, nil, M.spawn_props)
+			M.entity_list[id] = true
+		end
 	end
 
 	-- expand the tracking bounds
@@ -207,8 +195,10 @@ function M.update_chunks(position)
 			table.remove(M.active_chunks, i)
 
 			-- recalculate working boundaries based on remaining active chunks
-			M.min_generated_x = 9999999
-			M.max_generated_x = -9999999
+			-- recalculate working boundaries based on remaining active chunks
+			M.min_generated_x = math.huge
+			M.max_generated_x = -math.huge
+			
 			for _, active_chunk in ipairs(M.active_chunks) do
 				if active_chunk.start_x < M.min_generated_x then M.min_generated_x = active_chunk.start_x end
 				if active_chunk.end_x > M.max_generated_x then M.max_generated_x = active_chunk.end_x end

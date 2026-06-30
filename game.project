@@ -23,6 +23,7 @@ show_console_banner = 0
 
 [project]
 title = car
+dependencies#0 = https://github.com/indiesoftby/defold-simplex-noise/archive/main.zip
 
 [input]
 game_binding = /builtins/input/all.input_bindingc
