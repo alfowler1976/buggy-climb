@@ -1,13 +1,7 @@
 # Welcome to Defold
 
-This project was created from the "empty" project template.
+A sample defold project to test box2d_v3 b2dchains and b2dshape 
 
-The settings in ["game.project"](defold://open?path=/game.project) are all the default. A bootstrap empty ["main.collection"](defold://open?path=/main/main.collection) is included.
+requires defold 1.13.0 (or later
 
-Check out [the documentation pages](https://defold.com/learn) for examples, tutorials, manuals and API docs.
-
-If you run into trouble, help is available in [our forum](https://forum.defold.com).
-
-Happy Defolding!
-
----
+coin animation was from https://opengameart.org/content/coin-animation
