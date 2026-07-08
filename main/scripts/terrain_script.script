@@ -17,6 +17,8 @@ function init(self)
 	-- set up terrain
 	terrain.init(b2d.get_body("#collisionobject"),2000)
 	terrain.coin_factory = msg.url("#factory_coin")
+	terrain.mine_factory = msg.url("#factory_mine")
+	
 	terrain.spawn_props = {spawner_url = msg.url(".")}
 	
 	-- create buggy

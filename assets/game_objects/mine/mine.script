@@ -1,0 +1,55 @@
+local TRIGGER = hash("trigger_response")
+local MSG_DELETE_FROM_LIST = hash("entity")
+
+
+go.property("spawner_url",msg.url())
+
+local EXPLODE = {
+	position = vmath.vector3(0,0,0), 
+	radius = 200,
+	falloff = 50,
+	impulse_per_length = 1000
+}
+
+local function delete_object(self)
+	-- let spawner know its about to be deleted
+	if (go.exists(self.spawner_url)==true) then
+		msg.post(self.spawner_url, MSG_DELETE_FROM_LIST, {id=go.get_id()})
+	end
+
+end
+
+
+function init(self)
+	self.activate = false
+end
+
+local function explode(self, handle, time_elapsed)
+
+	-- calc explode
+	local world = b2d.get_world()
+	EXPLODE.position = go.get_position()
+	b2d.world.explode(world, EXPLODE)
+	particlefx.play("#explode")
+
+	-- delete object
+	delete_object(self)
+	timer.delay(1,false,function() go.delete() end)
+end
+
+function on_message(self, message_id, message, sender)
+
+	if (message_id==TRIGGER and self.activate == false) then
+
+		self.activate=true
+
+		-- disable collision
+		local body = b2d.get_body("#collisionobject")
+		b2d.body.set_active(body, false)
+
+		-- explode in 0,3
+		timer.delay(0.3, false, explode)
+	
+	end
+
+end

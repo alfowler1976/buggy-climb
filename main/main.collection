@@ -40,6 +40,12 @@ embedded_instances {
   "  data: \"prototype: \\\"/assets/game_objects/coin/coin.go\\\"\\n"
   "\"\n"
   "}\n"
+  "embedded_components {\n"
+  "  id: \"factory_mine\"\n"
+  "  type: \"factory\"\n"
+  "  data: \"prototype: \\\"/assets/game_objects/mine/mine.go\\\"\\n"
+  "\"\n"
+  "}\n"
   ""
 }
 embedded_instances {

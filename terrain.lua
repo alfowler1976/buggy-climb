@@ -13,6 +13,17 @@ local STREAM_TEX = hash("texcoord0")
 local math_sin = math.sin
 local math_max = math.max
 local math_min = math.min
+local factory_create = factory.create
+local math_atan2 = math.atan2
+local vmath_vector3 = vmath.vector3
+local math_floor = math.floor
+local buffer_get_stream = buffer.get_stream
+local resource_set_buffer = resource.set_buffer
+
+
+local POS_STREAM =  hash("position")
+local UV_STREAM =  hash("texcoord0")
+local TEMP_VEC = vmath.vector3()
 
 local M = {}
 
@@ -31,6 +42,7 @@ M.point_pool = {}
 -- road buffer
 M.road_buffer = nil 
 M.coin_factory = nil
+M.mine_factory = nil
 
 M.spawn_props = {}
 
@@ -149,15 +161,38 @@ function M.generate_chain_chunk(start_x, forward)
 
 	local chunk = start_x/M.chunk_width
 
+	-- if even chunk generate a mine
+	if (chunk%2)==0 and forward==true then
+		
+		local mine_index = 14
+
+		local dy = M.point_pool[mine_index+1].y - M.point_pool[mine_index].y
+		local dx = M.point_pool[mine_index+1].x - M.point_pool[mine_index].x
+
+		local angle = math_atan2(dy, dx)+math.pi
+
+		local mid_x =  (M.point_pool[mine_index].x +  M.point_pool[mine_index+1].x)/2
+		local mid_y =  (M.point_pool[mine_index].y +  M.point_pool[mine_index+1].y)/2
+
+		local id = factory_create(M.mine_factory, vmath_vector3(mid_x,mid_y,0.9),vmath.quat_rotation_z(angle),M.spawn_props)
+		M.entity_list[id] = true
+		
+	end
+
+
 	-- if odd chunk and generating forward spawn some coins...
 	if (chunk%2)==1 and forward==true then
-		
+
 		local coin_indices = {10, 12, 14, 16}
 		-- generate coins for indices
 		for _, index in ipairs(coin_indices) do
 			local point = M.point_pool[index]
-			local spawn_pos = vmath.vector3(point.x, point.y + 50, 0.4)
-			local id = factory.create(M.coin_factory, spawn_pos, nil, M.spawn_props)
+
+			TEMP_VEC.x = point.x
+			TEMP_VEC.y = point.y + 50
+			TEMP_VEC.z = 0.8
+			
+			local id = factory_create(M.coin_factory, TEMP_VEC, nil, M.spawn_props)
 			M.entity_list[id] = true
 		end
 	end
@@ -185,24 +220,24 @@ function M.update_chunks(position)
 
 	-- cull chunks 
 	local cull_distance = M.chunk_width * 3
-	
+	local chunks_culled = false
+
 	for i = #M.active_chunks, 1, -1 do
 		local chunk = M.active_chunks[i]
-
-		-- if a chunk is too far from left and right, then remove it
 		if chunk.end_x < (position.x - cull_distance) or chunk.start_x > (position.x + cull_distance) then
 			b2d.chain.destroy(chunk.shape_ref)
 			table.remove(M.active_chunks, i)
+			chunks_culled = true
+		end
+	end
 
-			-- recalculate working boundaries based on remaining active chunks
-			-- recalculate working boundaries based on remaining active chunks
-			M.min_generated_x = math.huge
-			M.max_generated_x = -math.huge
-			
-			for _, active_chunk in ipairs(M.active_chunks) do
-				if active_chunk.start_x < M.min_generated_x then M.min_generated_x = active_chunk.start_x end
-				if active_chunk.end_x > M.max_generated_x then M.max_generated_x = active_chunk.end_x end
-			end
+	-- recalculate only once, outside the loop
+	if chunks_culled then
+		M.min_generated_x = math.huge
+		M.max_generated_x = -math.huge
+		for _, active_chunk in ipairs(M.active_chunks) do
+			if active_chunk.start_x < M.min_generated_x then M.min_generated_x = active_chunk.start_x end
+			if active_chunk.end_x > M.max_generated_x then M.max_generated_x = active_chunk.end_x end
 		end
 	end
 end
@@ -210,11 +245,11 @@ end
 function M.generate_terrain(start_x,vertices_url)
 
 	-- get buffers
-	local stream = buffer.get_stream(M.road_buffer , hash("position"))
-	local uv_stream = buffer.get_stream(M.road_buffer , hash("texcoord0"))
+	local stream = buffer_get_stream(M.road_buffer , POS_STREAM)
+	local uv_stream = buffer_get_stream(M.road_buffer , UV_STREAM)
 
 	-- adjust start to the floor segment length (and take another off)
-	start_x = math.floor(start_x/SEGMENT_LENGTH)*SEGMENT_LENGTH-SEGMENT_LENGTH
+	start_x = math_floor(start_x/SEGMENT_LENGTH)*SEGMENT_LENGTH-SEGMENT_LENGTH
 
 	-- set u calc for start
 	local u= (start_x/50) % 2
@@ -252,7 +287,7 @@ function M.generate_terrain(start_x,vertices_url)
 	end
 
 	--set buffer
-	resource.set_buffer(vertices_url,M.road_buffer)
+	resource_set_buffer(vertices_url,M.road_buffer)
 end
 
 

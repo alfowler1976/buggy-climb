@@ -31,3 +31,7 @@ game_binding = /builtins/input/all.input_bindingc
 [native_extension]
 app_manifest = /manifest.appmanifest
 
+[particle_fx]
+max_particle_buffer_count = 2048
+max_particle_count = 2048
+
